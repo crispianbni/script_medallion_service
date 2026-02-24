@@ -122,6 +122,16 @@ script_medallion_service/
 │
 └── monitoring_path_reportloaderoutput/    # Directory Monitoring Module
     ├── monitoring_path_reportloaderoutput.sh  # Main script
+
+└── sftp_log/                             # SFTP log transfer module
+    ├── copy_log_app_dc.sh                # pull APP DC log (local+remote)
+    ├── copy_log_app_drc.sh               # pull APP DRC log (local+remote)
+    ├── copy_log_rpt_dc.sh                # pull report DC log (local+remote)
+    ├── copy_log_rpt_drc.sh               # pull report DRC log (local+remote)
+    ├── copy_log_web_dc.sh                # pull web DC log (local+remote)
+    ├── copy_log_web_drc.sh               # pull web DRC log (local+remote)
+    ├── credential_nas                    # credentials for NAS access
+    └── sftp_to_nas                       # placeholder script (empty)
     └── output/                            # Monitoring log output directory
         └── monitoring_path_reportloaderoutput.log
 ```
@@ -225,6 +235,33 @@ script_medallion_service/
 2026-02-11 10:35:18 | INFO | Initial state created
 ```
 
+### 4. sftp_log module (SFTP log transfer)
+
+**Purpose**: Fetch important log files from local and remote servers (APP, REPORT, WEB) using SFTP for monitoring and analysis.
+
+**Scripts included**:
+- `copy_log_app_dc.sh` / `copy_log_app_drc.sh` – pull `medallionServer.log` from APP DC/DRC servers
+- `copy_log_rpt_dc.sh` / `copy_log_rpt_drc.sh` – pull `medallionPentahoReport_Today.log` from Report DC/DRC servers
+- `copy_log_web_dc.sh` / `copy_log_web_drc.sh` – pull `medallionWeb.log` from WEB DC/DRC servers
+- `credential_nas` – contains NAS credentials for later transfer
+- `sftp_to_nas` – placeholder script (currently empty)
+
+**Main Functions**:
+- Create destination directory (`/home/medallion/monitoring/automation/output_sftp_log/`) if missing
+- Copy local log file to destination directory
+- Establish SFTP connection to remote host and download remote log
+- Validate operation status and print SUCCESS/FAILED
+
+**Technical Information**:
+- **Author**: Crispian | 901146
+- **Last Update**: 23-02-2026 (varies per script)
+- **Key Variables**: `REMOTE_HOST`, `SOURCE_FILE`, `LOCAL_DIR`, `LOCAL_NAME1`, `LOCAL_NAME2`
+
+**Notes**:
+- Ensure SFTP connectivity between local and remote hosts is configured (SSH keys or passwordless).
+- Edit `credential_nas` to provide NAS access if needed.
+
+
 ---
 
 ## 💻 Usage Guide
@@ -274,6 +311,21 @@ tail -f /home/medallion/monitoring/App/output_monitoring_logs_aux/monitoring_pat
 killall monitoring_path_reportloaderoutput.sh
 ```
 
+### Running sftp_log scripts
+```bash
+# example: pull application log from DC
+./sftp_log/copy_log_app_dc.sh
+
+# example: pull web log from DRC
+./sftp_log/copy_log_web_drc.sh
+
+# outputs are stored under "/home/medallion/monitoring/automation/output_sftp_log/"
+# check STDOUT for SUCCESS/FAILED messages
+
+# customize NAS credentials (if used)
+# edit sftp_log/credential_nas before running upload scripts
+```
+
 ---
 
 ## ⚙️ Configuration
@@ -313,6 +365,26 @@ LOG_DIR="/home/medallion/monitoring/App/output_monitoring_logs_aux/"
 # Check interval in seconds (default: 60)
 SLEEP_INTERVAL=60
 ```
+
+### sftp_log scripts
+Edit connection variables and paths as needed:
+```bash
+# Remote host IP (adjust for DC/DRC)
+REMOTE_HOST="192.168.x.x"
+
+# Location of log file on server
+SOURCE_FILE="/opt/MedallionLog/server/medallionServer.log"
+
+# Local directory to hold results
+LOCAL_DIR="/home/medallion/monitoring/automation/output_sftp_log/"
+
+# Local filenames for local and remote copy
+LOCAL_NAME1="medallionServer_1.log"
+LOCAL_NAME2="medallionServer_2.log"
+```
+
+# To enable NAS uploads, modify
+# `sftp_log/credential_nas` with valid credentials.
 
 ---
 

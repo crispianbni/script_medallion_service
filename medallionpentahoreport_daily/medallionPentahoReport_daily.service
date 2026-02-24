@@ -1,0 +1,11 @@
+[Unit]
+Description=medallionPentahoReport_daily
+After=network.target
+
+[Service]
+ExecStart=/bin/bash /home/medallion/Scriptsh/medallionPentahoReport_daily.sh
+Restart=always
+User=medallion
+
+[Install]
+WantedBy=multi-user.target

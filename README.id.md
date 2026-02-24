@@ -124,6 +124,16 @@ script_medallion_service/
     ├── monitoring_path_reportloaderoutput.sh  # Script utama
     └── output/                            # Direktori output log monitoring
         └── monitoring_path_reportloaderoutput.log
+
+├── sftp_log/                             # Modul transfer log via SFTP
+│   ├── copy_log_app_dc.sh                # tarik log APP DC lokal & remote
+│   ├── copy_log_app_drc.sh               # tarik log APP DRC lokal & remote
+│   ├── copy_log_rpt_dc.sh                # tarik log report DC lokal & remote
+│   ├── copy_log_rpt_drc.sh               # tarik log report DRC lokal & remote
+│   ├── copy_log_web_dc.sh                # tarik log web DC lokal & remote
+│   ├── copy_log_web_drc.sh               # tarik log web DRC lokal & remote
+│   ├── credential_nas                    # file berisi credential NAS
+│   └── sftp_to_nas                       # skrip placeholder (kosong)
 ```
 
 ---
@@ -225,6 +235,33 @@ script_medallion_service/
 2026-02-11 10:35:18 | INFO | Initial state created
 ```
 
+### 4. Modul sftp_log (Transfer log via SFTP)
+
+**Tujuan**: Mengambil salinan log penting dari server lokal dan remote (APP, REPORT, WEB) menggunakan SFTP untuk keperluan monitoring dan analisa.
+
+**Isi Skrip**:
+- `copy_log_app_dc.sh` / `copy_log_app_drc.sh` – menarik `medallionServer.log` dari server APP DC/DRC
+- `copy_log_rpt_dc.sh` / `copy_log_rpt_drc.sh` – menarik `medallionPentahoReport_Today.log` dari server Report DC/DRC
+- `copy_log_web_dc.sh` / `copy_log_web_drc.sh` – menarik `medallionWeb.log` dari server WEB DC/DRC
+- `credential_nas` – berisi kredensial NAS untuk ditransfer nanti
+- `sftp_to_nas` – placeholder untuk skrip upload ke NAS (saat ini kosong)
+
+**Fungsi Utama**:
+- Buat direktori tujuan (`/home/medallion/monitoring/automation/output_sftp_log/`) jika belum ada
+- Salin file log lokal ke direktori tujuan
+- Koneksi SFTP ke host remote dan unduh file log ke direktori yang sama
+- Validasi status operasi dan mencetak SUCCESS/FAILED
+
+**Informasi Teknis**:
+- **Author**: Crispian | 901146
+- **Last Update**: 23-02-2026 (tergantung skrip)
+- **Variabel Utama**: `REMOTE_HOST`, `SOURCE_FILE`, `LOCAL_DIR`, `LOCAL_NAME1`, `LOCAL_NAME2`
+
+**Catatan**:
+- Pastikan koneksi SFTP antara host lokal dan remote telah dikonfigurasi (kunci SSH atau passwordless).
+- `credential_nas` dapat diedit untuk menyediakan akses ke NAS jika diperlukan.
+
+
 ---
 
 ## 💻 Cara Penggunaan
@@ -274,6 +311,21 @@ tail -f /home/medallion/monitoring/App/output_monitoring_logs_aux/monitoring_pat
 killall monitoring_path_reportloaderoutput.sh
 ```
 
+### Menjalankan skrip sftp_log
+```bash
+# contoh: tarik log aplikasi DC
+./sftp_log/copy_log_app_dc.sh
+
+# contoh: tarik log web DRC
+./sftp_log/copy_log_web_drc.sh
+
+# hasil akan disimpan di "/home/medallion/monitoring/automation/output_sftp_log/"
+# periksa pesan SUCCESS/FAILED pada stdout
+
+# kustomisasi credentials NAS (jika dipakai)
+# edit file sftp_log/credential_nas sebelum menjalankan skrip upload
+```
+
 ---
 
 ## ⚙️ Konfigurasi
@@ -313,6 +365,26 @@ LOG_DIR="/home/medallion/monitoring/App/output_monitoring_logs_aux/"
 # Interval check dalam detik (default: 60)
 SLEEP_INTERVAL=60
 ```
+
+### sftp_log scripts
+Sunting variabel koneksi dan jalur sesuai kebutuhan:
+```bash
+# Host remote (ubah sesuai target DC/DRC)
+REMOTE_HOST="192.168.x.x"
+
+# Lokasi file log di server
+SOURCE_FILE="/opt/MedallionLog/server/medallionServer.log"
+
+# Direktori lokal untuk menyimpan hasil
+LOCAL_DIR="/home/medallion/monitoring/automation/output_sftp_log/"
+
+# Nama file lokal tujuan (lokal dan remote)
+LOCAL_NAME1="medallionServer_1.log"
+LOCAL_NAME2="medallionServer_2.log"
+```
+
+# Untuk mengaktifkan upload ke NAS, modifikasi file
+# `sftp_log/credential_nas` dengan kredensial yang benar.
 
 ---
 
