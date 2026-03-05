@@ -1,0 +1,11 @@
+[Unit]
+Description=monitoring_logs_aux
+After=network.target
+
+[Service]
+ExecStart=/bin/bash /home/medallion/monitoring/App/run_all_monitoring.sh
+Restart=always
+User=medallion
+
+[Install]
+WantedBy=multi-user.target

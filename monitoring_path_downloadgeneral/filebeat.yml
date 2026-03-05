@@ -1,0 +1,31 @@
+filebeat.inputs:
+- type: filestream
+  id: log-medallion-new
+  enabled: true
+  paths:
+  - /opt/MedallionLog/server/medallionServer.log
+  fields:
+    app_id: log-medallion-new
+
+- type: filestream
+  id: medallion-app
+  enabled: true
+  paths:
+  - /home/medallion/monitoring/App/output_medallionConnectorJaxws/output_medallionConnectorJaxws.log
+  fields:
+    app_id: medallion-app
+
+- type: filestream
+  id: medallion-connection
+  enabled: true
+  paths:
+  - /home/medallion/monitoring/App/output_monitoring_logs_aux/monitoring_path_reportloaderoutput.log
+  - /home/medallion/monitoring/App/output_monitoring_logs_aux/sensor_all_app.log
+  - /home/medallion/monitoring/App/output_monitoring_logs_aux/monitoring_path_sftp_upload.log
+  - /home/medallion/monitoring/App/output_monitoring_logs_aux/monitoring_path_downloadgeneral.log
+  fields:
+    app_id: medallion-connection
+
+output.redis:
+  hosts: ["192.168.98.108:6379"]
+  key: "%{[fields.app_id]}"

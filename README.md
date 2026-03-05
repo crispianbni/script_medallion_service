@@ -10,6 +10,7 @@ This repository contains a collection of Linux scripts used for automation and m
 🌐 **Languages:**
 - 🇬🇧 English (default)
 - 🇮🇩 [Bahasa Indonesia](README.id.md)
+- 🇩🇪 [Deutsch](README.de.md)
 
 ## 📋 Table of Contents
 
@@ -122,8 +123,21 @@ script_medallion_service/
 │
 └── monitoring_path_reportloaderoutput/    # Directory Monitoring Module
     ├── monitoring_path_reportloaderoutput.sh  # Main script
+    ├── filebeat.yml                           # Filebeat configuration
+    ├── monitoring_logs_aux.service            # Systemd service file
+    ├── run_all_monitoring.sh                  # Script to run all monitoring
+    └── output/                                # Monitoring log output directory
+        └── monitoring_path_reportloaderoutput.log
 
-└── sftp_log/                             # SFTP log transfer module
+├── monitoring_path_downloadgeneral/          # Download general directory monitoring module
+│   ├── monitoring_path_downloadgeneral.sh    # Main script
+│   ├── filebeat.yml                          # Filebeat configuration
+│   ├── monitoring_logs_aux.service           # Systemd service file
+│   ├── run_all_monitoring.sh                 # Script to run all monitoring
+│   └── output/                               # Monitoring log output directory
+│       └── monitoring_path_downloadgeneral.log
+
+└── sftp_log/                                # SFTP log transfer module
     ├── copy_log_app_dc.sh                # pull APP DC log (local+remote)
     ├── copy_log_app_drc.sh               # pull APP DRC log (local+remote)
     ├── copy_log_rpt_dc.sh                # pull report DC log (local+remote)
@@ -235,7 +249,36 @@ script_medallion_service/
 2026-02-11 10:35:18 | INFO | Initial state created
 ```
 
-### 4. sftp_log module (SFTP log transfer)
+### 4. monitoring_path_downloadgeneral.sh
+
+**Purpose**: Continuously monitor the `downloadgeneral` directory and log every new file that appears with full timestamp.
+
+**Main Functions**:
+- Monitor target directory at regular intervals
+- Detect new files using file state comparison
+- Log new file information with timestamp
+- Automatically reset log on day change
+
+**Input**:
+- Monitor path: `/opt/MedallionFiles/download/general/`
+
+**Output**:
+- `monitoring_path_downloadgeneral.log` - Monitoring log file
+
+**Technical Information**:
+- **Author**: Crispian | 901146
+- **Last Update**: 02-03-2026
+- **Check Interval**: 60 seconds (configurable)
+- **Mode**: Continuous service (run in background)
+
+**Log Output Format**:
+```
+2026-03-05 10:30:45 | downloadgeneral | /opt/MedallionFiles/download/general/file_new_001.txt
+2026-03-05 10:31:02 | downloadgeneral | /opt/MedallionFiles/download/general/file_new_002.xml
+2026-03-05 10:35:18 | INFO | Initial state created
+```
+
+### 5. sftp_log module (SFTP log transfer)
 
 **Purpose**: Fetch important log files from local and remote servers (APP, REPORT, WEB) using SFTP for monitoring and analysis.
 
@@ -311,6 +354,22 @@ tail -f /home/medallion/monitoring/App/output_monitoring_logs_aux/monitoring_pat
 killall monitoring_path_reportloaderoutput.sh
 ```
 
+### Running monitoring_path_downloadgeneral.sh
+```bash
+# Run in background
+nohup ./monitoring_path_downloadgeneral/monitoring_path_downloadgeneral.sh &
+
+# Or use systemd
+sudo systemctl start medallion-monitor-downloadgeneral
+sudo systemctl enable medallion-monitor-downloadgeneral
+
+# Monitor in real-time
+tail -f /home/medallion/monitoring/App/output_monitoring_logs_aux/monitoring_path_downloadgeneral.log
+
+# Stop monitoring
+killall monitoring_path_downloadgeneral.sh
+```
+
 ### Running sftp_log scripts
 ```bash
 # example: pull application log from DC
@@ -358,6 +417,19 @@ Customize path and monitoring interval:
 ```bash
 # Directory to monitor
 MONITOR_PATH="/opt/MedallionFiles/data/reportloaderoutput/"
+
+# Directory for logs
+LOG_DIR="/home/medallion/monitoring/App/output_monitoring_logs_aux/"
+
+# Check interval in seconds (default: 60)
+SLEEP_INTERVAL=60
+```
+
+### monitoring_path_downloadgeneral.sh
+Customize path and monitoring interval:
+```bash
+# Directory to monitor
+MONITOR_PATH="/opt/MedallionFiles/download/general/"
 
 # Directory for logs
 LOG_DIR="/home/medallion/monitoring/App/output_monitoring_logs_aux/"
@@ -475,6 +547,31 @@ tail -100 /home/medallion/monitoring/App/output_monitoring_logs_aux/monitoring_p
 
 # Run with error handling
 bash -x monitoring_path_reportloaderoutput.sh 2>&1 | tee debug.log
+```
+
+### monitoring_path_downloadgeneral.sh Issues
+
+**Problem**: Log directory not found
+```bash
+# Create directory manually
+sudo mkdir -p /home/medallion/monitoring/App/output_monitoring_logs_aux/
+sudo chown medallion:medallion /home/medallion/monitoring/App/output_monitoring_logs_aux/
+```
+
+**Problem**: Permission denied on log file
+```bash
+# Check permissions
+ls -la /home/medallion/monitoring/App/output_monitoring_logs_aux/
+chmod 755 /home/medallion/monitoring/App/output_monitoring_logs_aux/
+```
+
+**Problem**: Script stops unexpectedly
+```bash
+# Check for errors
+tail -100 /home/medallion/monitoring/App/output_monitoring_logs_aux/monitoring_path_downloadgeneral.log
+
+# Run with error handling
+bash -x monitoring_path_downloadgeneral.sh 2>&1 | tee debug.log
 ```
 
 ---

@@ -122,10 +122,21 @@ script_medallion_service/
 │
 └── monitoring_path_reportloaderoutput/    # Modul monitoring direktori
     ├── monitoring_path_reportloaderoutput.sh  # Script utama
-    └── output/                            # Direktori output log monitoring
+    ├── filebeat.yml                           # Konfigurasi Filebeat
+    ├── monitoring_logs_aux.service            # Systemd service file
+    ├── run_all_monitoring.sh                  # Script untuk menjalankan semua monitoring
+    └── output/                                # Direktori output log monitoring
         └── monitoring_path_reportloaderoutput.log
 
-├── sftp_log/                             # Modul transfer log via SFTP
+├── monitoring_path_downloadgeneral/          # Modul monitoring direktori downloadgeneral
+│   ├── monitoring_path_downloadgeneral.sh    # Script utama
+│   ├── filebeat.yml                          # Konfigurasi Filebeat
+│   ├── monitoring_logs_aux.service           # Systemd service file
+│   ├── run_all_monitoring.sh                 # Script untuk menjalankan semua monitoring
+│   └── output/                               # Direktori output log monitoring
+│       └── monitoring_path_downloadgeneral.log
+
+├── sftp_log/                                # Modul transfer log via SFTP
 │   ├── copy_log_app_dc.sh                # tarik log APP DC lokal & remote
 │   ├── copy_log_app_drc.sh               # tarik log APP DRC lokal & remote
 │   ├── copy_log_rpt_dc.sh                # tarik log report DC lokal & remote
@@ -235,7 +246,36 @@ script_medallion_service/
 2026-02-11 10:35:18 | INFO | Initial state created
 ```
 
-### 4. Modul sftp_log (Transfer log via SFTP)
+### 4. monitoring_path_downloadgeneral.sh
+
+**Tujuan**: Memonitor direktori `downloadgeneral` secara kontinyu dan mencatat setiap file baru yang muncul dengan timestamp lengkap.
+
+**Fungsi Utama**:
+- Monitor direktori target setiap interval waktu
+- Deteksi file baru menggunakan file state comparison
+- Catat informasi file baru ke log dengan timestamp
+- Reset log otomatis saat pergantian hari
+
+**Input**:
+- Monitor path: `/opt/MedallionFiles/download/general/`
+
+**Output**:
+- `monitoring_path_downloadgeneral.log` - Log file monitoring
+
+**Informasi Teknis**:
+- **Author**: Crispian | 901146
+- **Last Update**: 02-03-2026
+- **Check Interval**: 60 detik (dapat dikonfigurasi)
+- **Mode**: Continuous service (run di background)
+
+**Format Log Output**:
+```
+2026-03-05 10:30:45 | downloadgeneral | /opt/MedallionFiles/download/general/file_baru_001.txt
+2026-03-05 10:31:02 | downloadgeneral | /opt/MedallionFiles/download/general/file_baru_002.xml
+2026-03-05 10:35:18 | INFO | Initial state created
+```
+
+### 5. Modul sftp_log (Transfer log via SFTP)
 
 **Tujuan**: Mengambil salinan log penting dari server lokal dan remote (APP, REPORT, WEB) menggunakan SFTP untuk keperluan monitoring dan analisa.
 
@@ -311,6 +351,22 @@ tail -f /home/medallion/monitoring/App/output_monitoring_logs_aux/monitoring_pat
 killall monitoring_path_reportloaderoutput.sh
 ```
 
+### Menjalankan monitoring_path_downloadgeneral.sh
+```bash
+# Jalankan di background
+nohup ./monitoring_path_downloadgeneral/monitoring_path_downloadgeneral.sh &
+
+# Atau gunakan systemd
+sudo systemctl start medallion-monitor-downloadgeneral
+sudo systemctl enable medallion-monitor-downloadgeneral
+
+# Monitor real-time
+tail -f /home/medallion/monitoring/App/output_monitoring_logs_aux/monitoring_path_downloadgeneral.log
+
+# Hentikan monitoring
+killall monitoring_path_downloadgeneral.sh
+```
+
 ### Menjalankan skrip sftp_log
 ```bash
 # contoh: tarik log aplikasi DC
@@ -358,6 +414,19 @@ Sesuaikan path dan interval monitoring:
 ```bash
 # Direktori yang dimonitor
 MONITOR_PATH="/opt/MedallionFiles/data/reportloaderoutput/"
+
+# Direktori untuk log
+LOG_DIR="/home/medallion/monitoring/App/output_monitoring_logs_aux/"
+
+# Interval check dalam detik (default: 60)
+SLEEP_INTERVAL=60
+```
+
+### monitoring_path_downloadgeneral.sh
+Sesuaikan path dan interval monitoring:
+```bash
+# Direktori yang dimonitor
+MONITOR_PATH="/opt/MedallionFiles/download/general/"
 
 # Direktori untuk log
 LOG_DIR="/home/medallion/monitoring/App/output_monitoring_logs_aux/"
@@ -475,6 +544,31 @@ tail -100 /home/medallion/monitoring/App/output_monitoring_logs_aux/monitoring_p
 
 # Jalankan dengan error handling
 bash -x monitoring_path_reportloaderoutput.sh 2>&1 | tee debug.log
+```
+
+### Script monitoring_path_downloadgeneral.sh
+
+**Masalah**: Log directory tidak ada
+```bash
+# Buat direktori secara manual
+sudo mkdir -p /home/medallion/monitoring/App/output_monitoring_logs_aux/
+sudo chown medallion:medallion /home/medallion/monitoring/App/output_monitoring_logs_aux/
+```
+
+**Masalah**: Permission denied pada log file
+```bash
+# Cek permission
+ls -la /home/medallion/monitoring/App/output_monitoring_logs_aux/
+chmod 755 /home/medallion/monitoring/App/output_monitoring_logs_aux/
+```
+
+**Masalah**: Script berhenti secara tiba-tiba
+```bash
+# Check apakah ada error
+tail -100 /home/medallion/monitoring/App/output_monitoring_logs_aux/monitoring_path_downloadgeneral.log
+
+# Jalankan dengan error handling
+bash -x monitoring_path_downloadgeneral.sh 2>&1 | tee debug.log
 ```
 
 ---
