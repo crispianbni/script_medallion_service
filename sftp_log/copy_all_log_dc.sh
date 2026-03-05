@@ -16,7 +16,7 @@ LOCAL_DIR="/home/medallion/monitoring/automation/output_sftp_log/all/"
 # Buat directory jika belum ada
 mkdir -p "$LOCAL_DIR"
 
-cp "$SOURCE_FILE" "$LOCAL_DIR"
+cp $SOURCE_FILE $LOCAL_DIR
 
 sftp $REMOTE_HOST_WEB <<EOF
 get $SOURCE_FILE $LOCAL_DIR
